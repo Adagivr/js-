@@ -1,0 +1,312 @@
+//获取元素的指定的样式属性
+function getStyle(elem,name){
+	//如果属性存在style[]中那么他被设置了
+	if(elem.style[name]){
+		return elem.style[name];
+	}
+	else if (elem.currentStyle)
+		return elem.currentStyle[name];
+
+	//或者w3c方法
+	else if (document.defaultView && document.defaultView.getComputedStyle){
+		name = name.replace(/([A-Z])/g,"-$1");
+		name = name.toLowerCase();
+
+		//获取样式对象并获取属性
+		var s = document.defaultView.getComputedStyle(elem,"");
+		return  s && s.getPropertyValue(name);
+
+	}else{
+		return null;
+	}
+}
+//获取元素的X水平 距离左端的位置 
+function pageX(elem){
+	//查看我们是否位于根元素
+	return elem.offsetParent ? elem.offsetLeft + pageX(elem.offsetParent):
+	//否则,获取当前的偏移量
+	elem.offsetLeft;
+}
+
+//获取元素的Y垂直顶端位置 
+function pageY(elem){
+	//查看我们是否位于根元素
+	return elem.offsetParent ? elem.offsetTop+ pageX(elem.offsetParent):
+	//否则,获取当前的偏移量
+	elem.offsetTop;
+}
+//获取元素相对于父亲的水平位置
+function parentX(elem){
+	//如果offsetParent 是元素的父亲,那么提前退出
+	return elem.parentNode == elem.offsetParent ?
+	 elem.offsetLeft :
+	//否则,我们需要找到元素和元素的父亲相对于整个页面的位置,并计算他们之间的差
+	pageX(elem) - pageX(elem.parentNode);
+}
+//获取元素相对于父亲的垂直位置
+function parentY(elem){
+	//如果offsetParent 是元素的父亲,那么提前退出
+	return elem.parentNode == elem.offsetParent ?
+	 elem.offsetTop :
+	//否则,我们需要找到元素和元素的父亲相对于整个页面的位置,并计算他们之间的差
+	pageY(elem) - pageY(elem.parentNode);
+}
+//获取css位置的辅助函数 靠左端位置
+function posX(elem){
+	//获取最终样式并得到数值
+	return parseInt(getStyle(elem,"left"));
+}
+//获取css位置的辅助函数 顶端位置
+function posY(elem){
+	//获取最终样式并得到数值
+	return parseInt(getStyle(elem,"top"));
+}
+//设置位置的函数 (与当前位置无关)
+function setX(elem,pos){
+	//使用像素设置单位css的left属性
+	elem.style.left = pos + "px";
+}
+//设置位置的函数 (与当前位置无关)
+function setY(elem,pos){
+	//使用像素设置单位css的top属性
+	elem.style.top = pos + "px";
+}
+//调整元素相对于当前位置的距离
+function addX(elem,pos){
+	//获取当前水平位置的距离,然后增加偏移量
+	setX(posX(elem) + pos);
+}
+//调整元素相对于当前位置的距离
+function addY(elem,pos){
+	//获取当前垂直位置的距离,然后增加偏移量
+	setY(posY(elem) + pos);
+}
+//获取元素的当前高度和宽度
+function getHeight(elem){
+	//获取css的最终值并解析
+	return parseInt(getStyle(elem,'height'));
+}
+function getWeight(elem){
+	//获取css的最终值并解析
+	return parseInt(getStyle(elem,'width'));
+}
+//隐藏元素不存在高度  如下方法获取宽高
+function fullHeight(elem){
+	//如果元素是显示的 那么使用offsetHeight 如果没有则使用 getHeight
+	if(getStyle(elem,'display') != 'none')
+		return elem.offsetHeight || getHeight(elem);
+
+	//否则我们必须处理display  =  none的元素 ,所以重置它的css属性以获取更精准的读数
+	var old= resetCSS(elem,{
+		display:'',
+		visibility:'hidden',
+		position:'absolute'
+	});
+	//使用clientheight找出元素的完整高度,如果还不生效 择使用getHeight函数
+	var  h = elem.clientHeight || getHeight(elem);
+	//最后不要忘记回复css属性
+	restoreCSS(elem,old);
+	//返回元素的完整高度
+	return h;
+}
+//隐藏元素不存在宽度  如下方法获取宽度
+function fullwidth(elem){
+	//如果元素是显示的 那么使用offsetHeight 如果没有则使用 getHeight
+	if(getStyle(elem,'display') != 'none')
+		return elem.offsetWidth || getWidth(elem);
+
+	//否则我们必须处理display  =  none的元素 ,所以重置它的css属性以获取更精准的读数
+	var old= resetCSS(elem,{
+		display:'',
+		visibility:'hidden',
+		position:'absolute'
+	});
+	//使用clientheight找出元素的完整高度,如果还不生效 择使用getHeight函数
+	var  w = elem.clientWidth| getWidth(elem);
+	//最后不要忘记回复css属性
+	restoreCSS(elem,old);
+	//返回元素的完整高度
+	return w;
+}
+//设置css一组属性的函数 ,它可以恢复到原有的设置
+function resetCSS( elem,prop){
+	var old={};
+
+	//遍历每一个属性
+	for(var i in prop){
+		//记录旧的属性值
+		old[i] = elem.style[i];
+		//并设置行的值
+		elem.style[i] = prop[i];
+	}
+	return  old;
+}
+//返回已经变化的值得集合,预留给 resetStoreCSS函数副作用的函数
+function  restoreCSS(elem,prop){
+	//重置所有的属性,回复他们的原有值
+	for(var  i  in prop ){
+		elem.style[i] = prop[i];
+	}
+}
+
+/*元素可见性方法1  display*/
+//使用display 隐藏元素的函数
+function hide(elem){
+	//找出元素display的当前状态
+	var curDisplay = getStyle(elem,'display');
+	//记录它的display状态
+	if(curDisplay != 'none'){
+		//elem.$oldDisplay $oldDisplay 是用户自定义的  相当于变量
+		elem.$oldDisplay = curDisplay;
+		//设置display 为none (即隐藏了元素)
+		elem.style.display = 'none';
+	}
+}
+//使用display显示元素的函数
+function show(elem){
+	//设置display属性为它的原始值 如没有记录原始值 则使用block
+	elem.style.display = elem.$oldDisplay || ' block';
+}
+
+/*元素可见性方法2  opacity*/
+//设置元素的透明度
+function setOpacity(elem,level){
+	//如果存在 filters这个属性,则它是ie 所以设置元素的alpha滤镜
+	if(elem.filters)
+		elem.style.filters = 'alpha(opacity = '+level+')';
+	//否则使用 w3c的 opacity 属性
+	else
+		elem.style.opacity = level/100; 
+}
+//通过在短时间内增加高度逐步显示隐藏元素的函数
+function slideDown(elem){
+	//找到元素的完整的潜在高度
+	var h = fullHeight(elem);
+	//从0高度开始滑动
+	elem.style.height = '0px';
+	//先显示元素(显示见不到他 因为他的高度是0)
+	show(elem);
+	//我们在1秒钟内执行一个20帧的动画
+	for (var i = 0; i <=100; i+=5) {
+		//保证我们能够保持正确的'i'的闭包函数
+		(function(){
+			var pos = i;
+			//设置timeout以让他能够在执行的时间点运行
+			setTimeout(function(){
+				//设置元素的新高度
+				elem.style.height = (pos/100)*h+"px";
+			},(pos+1)*10);
+		})();
+	}
+}
+//通过短时间内增加透明度逐步显示隐藏元素的函数
+function fadeIn(elem){
+	//从0透明度开始
+	setOpacity(elem,0);
+
+	//先显示元素(但是看不到它,因为它的透明度是0)
+	show(elem);
+
+	//我们在1秒钟内执行一个20帧的动画
+	for(var i=0;i<=100;i+=5){
+		//保证我们能够正确的'i'的闭包函数
+		(function(){
+			var pos = i;
+			//设置timeout以让它能在指定的时间内运行
+			setTimeout(function(){
+				//设置新的透明度;
+				setOpacity(elem,pos);
+			},(pos + 1)*10);
+		})();
+	}
+}
+//获取鼠标位置
+function getX(e){
+	//标准化对象事件
+	e = e  || window.event;
+	//先检查非ie浏览器的位置,再检查ie的位置
+	return e.pageX || e.clientX +document.body.scrolLeft;
+}
+//获取光标的垂直位置
+function getY(e){
+	//标准化事件
+	e = e||window.event;
+
+	//先检查非ie浏览器的位置,再检查ie的位置
+	return e.pageY|| e.clientY +document.body.scrolTop;
+}
+//获取鼠标相对于当前元素的位置的函数
+//获取鼠标相对于当前元素(事件对象'e'的属性 target)的位置
+function getElementX(e){
+	//获取正确的元素偏移量
+	return (e&&e.layerX) || window.event.offsetX;
+}
+
+//获取鼠标相对于当前元素(事件对象'e'的属性)
+function getElementY(e){
+	//获取正确的元素偏移量
+	return (e&&e.layerY) || window.event.offsetY;
+}
+//确定当前页面高度和宽度的两个函数
+//返回页面的高度
+function pageHeight(){
+	return document.body.scrollHeight;
+}
+//返回页面的宽度
+function pageWidth(){
+	return document.body.scrollWidth;
+}
+//滚动条位置
+//确定浏览器水平滚动位置的函数
+function scrollX(){
+	//一个快捷方式 用在ie6/7的严格模式中
+	var de = document.documentElement;
+
+	//如果浏览器存在pageXoffset属性,则使用它
+	return self.pageXOffset ||
+	//否则,尝试获取根节点的左端滚动的偏移量
+	( de && de.scrollLeft) ||
+	//最后,尝试获取body元素的左端滚动的偏移量
+	document.body.scrollLeft;
+
+}
+//确定浏览器垂直滚动位置的函数
+function scrollY(){
+	//一个快捷方式 用在ie6/7的严格模式中
+	var de = document.documentElement;
+
+	//如果浏览器存在pageXoffset属性,则使用它
+	return self.pageYOffset ||
+	//否则,尝试获取根节点的左端滚动的偏移量
+	( de && de.scrollTop) ||
+	//最后,尝试获取body元素的左端滚动的偏移量
+	document.body.scrollTop;
+
+}
+//移动滚动条
+//如果需要滚动条到浏览器顶端  window.scrollTo(0,0)
+//如果要盾冬到指定的元素可以这样做
+//window.scrollTo(0,pageY(document.getElementById("body")));
+//视口尺寸
+//获取适口高度
+function windowHeight(){
+	//一个快捷方式,用在ie6/ie7中的严格模式中
+	var de = document.documentElement;
+	//如果浏览器存在innerHeight属性,则使用他
+	return self.innerHeight ||
+		//否则,尝试获取根节点高度偏移量
+		(de && de.clientHeight) ||
+		//最后,尝试获取body元素的高度偏移量
+		document.body.clientHeight;
+}
+//获取适口的宽度
+function windowWidth(){
+	//一个快捷方式,用在ie6/ie7中的严格模式中
+	var de = document.documentElement;
+	//如果浏览器存在innerHeight属性,则使用他
+	return self.innerWidth ||
+		//否则,尝试获取根节点高度偏移量
+		(de && de.clientWidth) ||
+		//最后,尝试获取body元素的高度偏移量
+		document.body.clientWidth;
+}
